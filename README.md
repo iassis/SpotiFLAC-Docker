@@ -42,7 +42,6 @@ services:
       - seccomp:unconfined
     restart: unless-stopped
 ```
----
 
 1. Run `docker compose up -d`.
 2. Open your browser and navigate to `https://YOUR_IP:3001`.
