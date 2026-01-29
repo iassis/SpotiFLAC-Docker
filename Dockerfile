@@ -1,12 +1,9 @@
-# Use a base image with a Web GUI (Ubuntu XFCE)
 FROM ghcr.io/linuxserver/webtop:ubuntu-xfce
+
+ARG SPOTIFLAC_VERSION=v7.0.6
+
 LABEL org.opencontainers.image.source="https://github.com/iassis/SpotiFLAC-Docker"
 
-# Set environment variables
-ENV TITLE=SpotiFLAC
-
-# Install dependencies
-# UPDATED: Changed libasound2 to libasound2t64 for Ubuntu 24.04 compatibility
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libwebkit2gtk-4.1-0 \
@@ -17,12 +14,10 @@ RUN apt-get update && apt-get install -y \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Setup application directory
 WORKDIR /app
 
-# Download the specific AppImage version requested
-# We extract it to avoid FUSE issues inside Docker
-RUN wget -O SpotiFLAC.AppImage "https://github.com/afkarxyz/SpotiFLAC/releases/download/v7.0.7/SpotiFLAC.AppImage" && \
+# Use the dynamic variable in the download URL
+RUN wget -O SpotiFLAC.AppImage "https://github.com/afkarxyz/SpotiFLAC/releases/download/${SPOTIFLAC_VERSION}/SpotiFLAC.AppImage" && \
     chmod +x SpotiFLAC.AppImage && \
     ./SpotiFLAC.AppImage --appimage-extract && \
     rm SpotiFLAC.AppImage && \
