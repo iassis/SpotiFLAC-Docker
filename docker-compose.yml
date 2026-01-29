@@ -1,0 +1,54 @@
+name: spotiflac
+services:
+    spotiflac:
+        cpu_shares: 50
+        command: []
+        container_name: spotiflac
+        deploy:
+            resources:
+                limits:
+                    memory: "2317082154"
+                reservations: {}
+        environment:
+            PGID: "0"
+            PUID: "0"
+            TZ: America/Sao_Paulo
+        image: ghcr.io/iassis/spotiflac:latest
+        labels:
+            icon: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRuGtBgLt5RhRvbhLblsCMq79aDWyMMy5Moog&s
+        networks:
+            default: null
+        ports:
+            - mode: ingress
+              target: 3001
+              published: "3004"
+              protocol: tcp
+        restart: unless-stopped
+        security_opt:
+            - seccomp:unconfined
+        shm_size: "2147483648"
+        volumes:
+            - type: bind
+              source: /DATA/AppData/spotiflac
+              target: /config
+              bind:
+                create_host_path: true
+            - type: bind
+              source: /media/192.168.50.41/DrivePool
+              target: /downloads
+              bind:
+                create_host_path: true
+networks:
+    default:
+        name: spotiflac_default
+x-casaos:
+    author: self
+    category: self
+    hostname: ""
+    icon: https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRuGtBgLt5RhRvbhLblsCMq79aDWyMMy5Moog&s
+    index: /
+    is_uncontrolled: false
+    port_map: "3004"
+    scheme: https
+    title:
+        custom: SpotiFLAC
