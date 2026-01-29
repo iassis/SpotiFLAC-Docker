@@ -2,7 +2,7 @@
 
 [![SpotiFLAC Auto-Update](https://github.com/iassis/SpotiFLAC-Docker/actions/workflows/sync-build.yml/badge.svg)](https://github.com/iassis/SpotiFLAC-Docker/actions/workflows/sync-build.yml)
 ![Upstream Version](https://img.shields.io/github/v/release/afkarxyz/SpotiFLAC?label=upstream%20version&color=blue)
-![Image Size](https://img.shields.io/gh-package/size/iassis/spotiflac?label=docker%20size&color=orange)
+![Image Size](https://img.rmnh.dev/ghcr.io/iassis/spotiflac/latest/size?label=docker%20size&color=orange)
 
 A Dockerized version of the **SpotiFLAC** AppImage, designed to run smoothly on headless servers (like ZimaOS, Unraid, or Synology) via a web-browser interface.
 
