@@ -50,7 +50,7 @@ services:
 ---
 
 ## ⚙️ Configuration
-Inside the SpotiFLAC GUI settings, ensure you set the Download Folder to /downloads so that files are saved to your host machine's mapped volume.
+Inside the SpotiFLAC GUI settings, ensure you set the Download Folder to `/downloads` so that files are saved to your host machine's mapped volume. You will find the app under the Multimedia menu.
 
 ---
 
