@@ -67,3 +67,16 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.upstream.outputs.tag }}
           build-args: |
             SPOTIFLAC_VERSION=${{ steps.upstream.outputs.tag }}
+            
+      - name: Create GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.upstream.outputs.tag }}
+          name: SpotiFLAC ${{ steps.upstream.outputs.tag }}
+          body: |
+            Automated Docker build for SpotiFLAC version ${{ steps.upstream.outputs.tag }}.
+            
+            **Image:** `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.upstream.outputs.tag }}`
+          draft: false
+          prerelease: false
