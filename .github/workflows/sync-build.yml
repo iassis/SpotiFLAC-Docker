@@ -8,7 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/spotiflac
-  UPSTREAM_REPO: afkarxyz/SpotiFLAC
+  UPSTREAM_REPO: spotbye/SpotiFLAC
 
 jobs:
   check-and-update:
