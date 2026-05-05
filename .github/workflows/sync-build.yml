@@ -9,7 +9,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/spotiflac
   UPSTREAM_REPO: afkarxyz/SpotiFLAC
-  # Clears the deprecation warnings and future-proofs the runner
+  # This tells GitHub to use the 2026-standard Node engine
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
@@ -26,8 +26,10 @@ jobs:
       - name: Fetch Latest Upstream Version
         id: upstream
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/${{ env.UPSTREAM_REPO }}/releases/latest | jq -r .tag_name)
-          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+          # We pull the tag name, but if it's empty, we default to 'main'
+          TAG=$(curl -s https://api.github.com/repos/${{ env.UPSTREAM_REPO }}/releases/latest | jq -r .tag_name)
+          if [ "$TAG" = "null" ] || [ -z "$TAG" ]; then TAG="main"; fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,7 +42,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and Push
-        # v6 is the latest stable version as of 2026
         uses: docker/build-push-action@v6
         with:
           context: .
