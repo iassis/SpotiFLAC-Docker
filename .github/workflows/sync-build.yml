@@ -3,12 +3,14 @@ name: SpotiFLAC Auto-Update
 on:
   schedule:
     - cron: '0 0 * * *' # Runs every night at midnight
-  workflow_dispatch:      # Allows you to click a button to run it manually
+  workflow_dispatch:      # Allows manual trigger
 
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository_owner }}/spotiflac
-  UPSTREAM_REPO: spotbye/SpotiFLAC
+  UPSTREAM_REPO: afkarxyz/SpotiFLAC
+  # Fixes the Node.js 20 deprecation warning from your logs
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   check-and-update:
@@ -26,11 +28,12 @@ jobs:
         run: |
           VERSION=$(curl -s https://api.github.com/repos/${{ env.UPSTREAM_REPO }}/releases/latest | jq -r .tag_name)
           echo "tag=$VERSION" >> $GITHUB_OUTPUT
-          echo "Latest SpotiFLAC version: $VERSION"
+          echo "Latest SpotiFLAC version found: $VERSION"
 
-      - name: Check if Version Exists in My Registry
+      - name: Check if Version Exists in Registry
         id: check
         run: |
+          # Check if the specific version tag already exists in your GitHub Packages
           TOKEN=$(echo ${{ secrets.GITHUB_TOKEN }} | base64)
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $TOKEN" \
@@ -38,10 +41,10 @@ jobs:
           
           if [ "$STATUS" = "200" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Version already exists. Skipping build."
+            echo "Version ${{ steps.upstream.outputs.tag }} already exists. Skipping build."
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "New version found! Proceeding with build."
+            echo "New version detected. Starting build..."
           fi
 
       - name: Set up Docker Buildx
@@ -58,7 +61,8 @@ jobs:
 
       - name: Build and Push
         if: steps.check.outputs.exists == 'false'
-        uses: docker/build-push-action@v5
+        # Updated to v6 to fully support the Node 24 environment
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -67,16 +71,3 @@ jobs:
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.upstream.outputs.tag }}
           build-args: |
             SPOTIFLAC_VERSION=${{ steps.upstream.outputs.tag }}
-            
-      - name: Create GitHub Release
-        if: steps.check.outputs.exists == 'false'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.upstream.outputs.tag }}
-          name: SpotiFLAC ${{ steps.upstream.outputs.tag }}
-          body: |
-            Automated Docker build for SpotiFLAC version ${{ steps.upstream.outputs.tag }}.
-            
-            **Image:** `ghcr.io/${{ env.IMAGE_NAME }}:${{ steps.upstream.outputs.tag }}`
-          draft: false
-          prerelease: false
