@@ -1,7 +1,7 @@
 # ==========================================
 # Stage 1: The Builder (Compiles the Source)
 # ==========================================
-FROM golang:1.26-bookworm AS builder
+FROM golang:1.24-bookworm AS builder
 
 # Define the version argument
 ARG SPOTIFLAC_VERSION=v7.1.6
@@ -31,18 +31,18 @@ ENV PATH="/root/go/bin:${PATH}"
 
 WORKDIR /build
 
-# Clone and Checkout the specific version
+# Clone and Checkout
 RUN git clone https://github.com/afkarxyz/SpotiFLAC.git . && \
     git checkout ${SPOTIFLAC_VERSION}
 
 # Build the application
-# Note: The binary name MUST match 'SpotiFLAC' exactly as defined in wails.json
 RUN wails build -platform linux/amd64 -clean -o SpotiFLAC -ldflags "-s -w"
 
 # ==========================================
 # Stage 2: The Runtime (The Efficient Container)
 # ==========================================
-FROM jlesage/baseimage-gui:debian-12
+# Using 'latest' ensures we pull a valid, updated image from jlesage
+FROM jlesage/baseimage-gui:latest
 
 ENV APP_NAME="SpotiFLAC"
 
@@ -63,7 +63,7 @@ WORKDIR /app
 COPY --from=builder /build/build/bin/SpotiFLAC /app/SpotiFLAC
 RUN chmod +x /app/SpotiFLAC
 
-# Configure the auto-launch script (Point to the capitalized binary)
+# Configure the auto-launch script
 RUN echo "#!/bin/sh\n/app/SpotiFLAC" > /startapp.sh && \
     chmod +x /startapp.sh
 
