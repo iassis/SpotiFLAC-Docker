@@ -1,7 +1,7 @@
 # ==========================================
 # Stage 1: The Builder (Compiles the Source)
 # ==========================================
-FROM golang:1.24-bookworm AS builder
+FROM golang:1.26-bookworm AS builder
 
 # Define the version argument
 ARG SPOTIFLAC_VERSION=v7.1.6
@@ -25,15 +25,13 @@ RUN apt-get update && apt-get install -y \
 
 # Install Wails CLI
 RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-# Add Go bin to PATH
 ENV PATH="/root/go/bin:${PATH}"
 
 WORKDIR /build
 
-# Clone and Checkout
+# SMART CLONE: Try the tag, fallback to main if tag doesn't exist
 RUN git clone https://github.com/afkarxyz/SpotiFLAC.git . && \
-    git checkout ${SPOTIFLAC_VERSION}
+    (git checkout ${SPOTIFLAC_VERSION} || (echo "Tag ${SPOTIFLAC_VERSION} not found, falling back to main branch..." && git checkout main))
 
 # Build the application
 RUN wails build -platform linux/amd64 -clean -o SpotiFLAC -ldflags "-s -w"
@@ -41,7 +39,7 @@ RUN wails build -platform linux/amd64 -clean -o SpotiFLAC -ldflags "-s -w"
 # ==========================================
 # Stage 2: The Runtime (The Efficient Container)
 # ==========================================
-# FIXED: Using the specific major version tag required by jlesage
+# FIXED: Using the specific tracking tag for Debian 12
 FROM jlesage/baseimage-gui:debian-12-v4
 
 ENV APP_NAME="SpotiFLAC"
@@ -59,7 +57,7 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy the compiled binary (Case sensitive: SpotiFLAC)
+# Copy the compiled binary
 COPY --from=builder /build/build/bin/SpotiFLAC /app/SpotiFLAC
 RUN chmod +x /app/SpotiFLAC
 
