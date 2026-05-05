@@ -7,9 +7,6 @@ FROM golang:1.26-bookworm AS builder
 ARG SPOTIFLAC_VERSION=v7.1.6
 
 # Install build dependencies
-# 1. Core tools and GTK/WebKit headers
-# 2. Node.js 20.x for frontend compilation
-# 3. pnpm (Required by SpotiFLAC's wails.json)
 RUN apt-get update && apt-get install -y \
     curl \
     git \
@@ -39,8 +36,8 @@ RUN git clone https://github.com/afkarxyz/SpotiFLAC.git . && \
     git checkout ${SPOTIFLAC_VERSION}
 
 # Build the application
-# -ldflags "-s -w" makes the binary smaller and more efficient
-RUN wails build -platform linux/amd64 -clean -o spotiflac -ldflags "-s -w"
+# Note: The binary name MUST match 'SpotiFLAC' exactly as defined in wails.json
+RUN wails build -platform linux/amd64 -clean -o SpotiFLAC -ldflags "-s -w"
 
 # ==========================================
 # Stage 2: The Runtime (The Efficient Container)
@@ -62,12 +59,12 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy the compiled binary from the builder
-COPY --from=builder /build/build/bin/spotiflac /app/spotiflac
-RUN chmod +x /app/spotiflac
+# Copy the compiled binary (Case sensitive: SpotiFLAC)
+COPY --from=builder /build/build/bin/SpotiFLAC /app/SpotiFLAC
+RUN chmod +x /app/SpotiFLAC
 
-# Configure the auto-launch script
-RUN echo "#!/bin/sh\n/app/spotiflac" > /startapp.sh && \
+# Configure the auto-launch script (Point to the capitalized binary)
+RUN echo "#!/bin/sh\n/app/SpotiFLAC" > /startapp.sh && \
     chmod +x /startapp.sh
 
 ENV HOME=/config
