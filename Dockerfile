@@ -41,8 +41,8 @@ RUN wails build -platform linux/amd64 -clean -o SpotiFLAC -ldflags "-s -w"
 # ==========================================
 # Stage 2: The Runtime (The Efficient Container)
 # ==========================================
-# Using 'latest' ensures we pull a valid, updated image from jlesage
-FROM jlesage/baseimage-gui:latest
+# FIXED: Using the specific major version tag required by jlesage
+FROM jlesage/baseimage-gui:debian-12-v4
 
 ENV APP_NAME="SpotiFLAC"
 
