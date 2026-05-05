@@ -1,41 +1,60 @@
-FROM ghcr.io/linuxserver/webtop:ubuntu-xfce
+# ==========================================
+# Stage 1: The Builder (Compiles the Source)
+# ==========================================
+FROM golang:1.21-bookworm AS builder
 
-ARG SPOTIFLAC_VERSION=v7.0.6
+# Define the version argument (defaults to v7.1.6 if run manually)
+ARG SPOTIFLAC_VERSION=v7.1.6
 
-LABEL org.opencontainers.image.source="https://github.com/iassis/SpotiFLAC-Docker"
+# Install build dependencies for Wails (Go + Node + GTK dev libs)
+RUN apt-get update && apt-get install -y \
+    npm \
+    libgtk-3-dev \
+    libwebkit2gtk-4.0-dev \
+    build-essential \
+    pkg-config
 
+# Install the Wails CLI (The tool that builds the app)
+RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+WORKDIR /build
+
+# Clone the repo AND checkout the specific version tag
+RUN git clone https://github.com/afkarxyz/SpotiFLAC.git . && \
+    git checkout ${SPOTIFLAC_VERSION}
+
+# Build the application
+RUN wails build -platform linux/amd64 -clean -o spotiflac
+
+# ==========================================
+# Stage 2: The Runtime (The Efficient Container)
+# ==========================================
+# We use 'jlesage/baseimage-gui' which is optimized for single-app containers
+FROM jlesage/baseimage-gui:debian-12
+
+# Set the name of the application for the window manager
+ENV APP_NAME="SpotiFLAC"
+
+# Install Runtime Dependencies
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libwebkit2gtk-4.1-0 \
+    libwebkit2gtk-4.0-37 \
     libgtk-3-0 \
     libnss3 \
-    libasound2t64 \
-    curl \
-    wget \
+    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Use the dynamic variable in the download URL
-RUN wget -O SpotiFLAC.AppImage "https://github.com/afkarxyz/SpotiFLAC/releases/download/${SPOTIFLAC_VERSION}/SpotiFLAC.AppImage" && \
-    chmod +x SpotiFLAC.AppImage && \
-    ./SpotiFLAC.AppImage --appimage-extract && \
-    rm SpotiFLAC.AppImage && \
-    mv squashfs-root spotiflac
+# Copy ONLY the compiled binary from the builder stage
+COPY --from=builder /build/build/bin/spotiflac /app/spotiflac
 
-# Create a Desktop shortcut for easy access in the Web interface
-RUN mkdir -p /usr/share/applications && \
-    echo "[Desktop Entry]\n\
-Version=1.0\n\
-Type=Application\n\
-Name=SpotiFLAC\n\
-Comment=Spotify Downloader\n\
-Exec=/app/spotiflac/AppRun\n\
-Icon=utilities-terminal\n\
-Path=/app/spotiflac\n\
-Terminal=false\n\
-Categories=AudioVideo;" > /usr/share/applications/spotiflac.desktop && \
-    chmod +x /usr/share/applications/spotiflac.desktop
+# Grant execution permissions
+RUN chmod +x /app/spotiflac
 
-# Ensure permissions are correct for the default user (abc)
-RUN chown -R abc:abc /app
+# Configure the container to launch SpotiFLAC automatically
+RUN echo "#!/bin/sh\n/app/spotiflac" > /startapp.sh && \
+    chmod +x /startapp.sh
+
+# Environment variables for the app
+ENV HOME=/config
