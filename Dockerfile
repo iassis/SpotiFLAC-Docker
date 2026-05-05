@@ -3,42 +3,49 @@
 # ==========================================
 FROM golang:1.21-bookworm AS builder
 
-# Define the version argument (defaults to v7.1.6 if run manually)
+# Define the version argument
 ARG SPOTIFLAC_VERSION=v7.1.6
 
-# Install build dependencies for Wails (Go + Node + GTK dev libs)
+# Install build dependencies
+# We add curl to get the latest Node.js and updated GTK/WebKit libs
 RUN apt-get update && apt-get install -y \
-    npm \
+    curl \
+    git \
     libgtk-3-dev \
-    libwebkit2gtk-4.0-dev \
+    libwebkit2gtk-4.1-dev \
     build-essential \
-    pkg-config
+    pkg-config \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
 
-# Install the Wails CLI (The tool that builds the app)
+# Install Wails CLI
 RUN go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Add the Go bin directory to the PATH so the 'wails' command is recognized
+ENV PATH="/root/go/bin:${PATH}"
 
 WORKDIR /build
 
-# Clone the repo AND checkout the specific version tag
+# Clone the repo and checkout the specific version
 RUN git clone https://github.com/afkarxyz/SpotiFLAC.git . && \
     git checkout ${SPOTIFLAC_VERSION}
 
 # Build the application
+# We use -skipbindings to speed up CI builds
 RUN wails build -platform linux/amd64 -clean -o spotiflac
 
 # ==========================================
 # Stage 2: The Runtime (The Efficient Container)
 # ==========================================
-# We use 'jlesage/baseimage-gui' which is optimized for single-app containers
 FROM jlesage/baseimage-gui:debian-12
 
-# Set the name of the application for the window manager
 ENV APP_NAME="SpotiFLAC"
 
 # Install Runtime Dependencies
+# Note: We use libwebkit2gtk-4.1-0 to match the builder stage
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libwebkit2gtk-4.0-37 \
+    libwebkit2gtk-4.1-0 \
     libgtk-3-0 \
     libnss3 \
     libasound2 \
@@ -46,15 +53,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy ONLY the compiled binary from the builder stage
+# Copy the compiled binary
+# Wails puts the final binary in build/bin/
 COPY --from=builder /build/build/bin/spotiflac /app/spotiflac
 
-# Grant execution permissions
 RUN chmod +x /app/spotiflac
 
-# Configure the container to launch SpotiFLAC automatically
+# Configure the auto-launch script
 RUN echo "#!/bin/sh\n/app/spotiflac" > /startapp.sh && \
     chmod +x /startapp.sh
 
-# Environment variables for the app
 ENV HOME=/config
